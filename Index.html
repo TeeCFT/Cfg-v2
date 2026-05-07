@@ -428,6 +428,7 @@ function renderGrid(configs) {
   var html = '';
   configs.forEach(function(cfg, i) {
     var isCloud  = !!cfg.config_text && !cfg.file_url;
+    var cfgFormat = cfg.config_format || 'copy';
     var dlCount  = cfg.downloads || 0;
     var protocol = cfg.protocol  || 'CONFIG';
     var added    = new Date(cfg.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short'});
@@ -438,9 +439,10 @@ function renderGrid(configs) {
     var badge = isCloud
       ? '<span class="cloud-badge">CLOUD</span>'
       : '<span class="protocol-badge">'+protocol+'</span>';
+    var safeFormat = cfgFormat.replace(/'/g,"\\'");
     var btn = isCloud
-      ? '<button class="unlock-btn cloud" onclick="startUnlock(\''+cfg.id+'\',\'\',\''+safeTitle+'\',\'\',true)">🔓 UNLOCK CONFIG</button>'
-      : '<button class="unlock-btn"       onclick="startUnlock(\''+cfg.id+'\',\''+safeUrl+'\',\''+safeTitle+'\',\''+safeName+'\',false)">🔓 UNLOCK CONFIG</button>';
+      ? '<button class="unlock-btn cloud" onclick="startUnlock(\''+cfg.id+'\',\'\',\''+safeTitle+'\',\'\',true,\''+safeFormat+'\')">🔓 UNLOCK CONFIG</button>'
+      : '<button class="unlock-btn" onclick="startUnlock(\''+cfg.id+'\',\''+safeUrl+'\',\''+safeTitle+'\',\''+safeName+'\',false,\'copy\')">🔓 UNLOCK CONFIG</button>';
     html += '<div class="config-card" style="animation-delay:'+(i*0.05)+'s">'
       +'<div class="card-top">'+badge+'<span class="dl-count">↓ '+dlCount.toLocaleString()+'</span></div>'
       +'<div class="card-title">'+(cfg.title||'Untitled')+'</div>'
@@ -465,14 +467,14 @@ document.querySelectorAll('.filter-btn').forEach(function(btn) {
 });
 
 // ── UNLOCK FLOW
-function startUnlock(id, fileUrl, title, fileName, isCloud) {
-  currentDownload = {
-    id        : id,
-    fileUrl   : fileUrl,
-    title     : title,
-    fileName  : fileName,
-    isCloud   : isCloud,
-    configText: isCloud ? (cloudTextMap[id] || null) : null
+function startUnlock(id, fileUrl, title, fileName, isCloud, cfgFormat) {
+  currentDownload = { id:id, 
+  fileUrl:fileUrl, 
+  title:title, 
+  fileName:fileName, 
+  isCloud:isCloud, 
+  configText:isCloud?(cloudTextMap[id]||null):null, 
+  format: cfgFormat || 'copy' };
   };
   var readyBtn = document.getElementById('unlock-ready-btn');
   readyBtn.className    = 'unlock-ready-btn ' + (isCloud ? 'cp' : 'dl');
@@ -538,11 +540,12 @@ function runCountdown(seconds) {
 
 // ── UNLOCK BUTTON
 document.getElementById('unlock-ready-btn').addEventListener('click', function() {
-  if (currentDownload && currentDownload.isCloud) {
-    doCloudCopy();
-  } else {
-    doFileDownload();
-  }
+  if (!currentDownload) return;
+  if (!currentDownload.isCloud) { doFileDownload(); return; }
+  var fmt = currentDownload.format || 'copy';
+  if (fmt === 'npv')  { doBlobImport('cloudconfig.npv2'); }
+  else if (fmt === 'ehi') { doBlobImport('cloudconfig.ehi'); }
+  else { doCloudCopy(); }
 });
 
 function doFileDownload() {
@@ -563,6 +566,27 @@ function doFileDownload() {
   incrementDownloads(currentDownload.id);
 }
 
+function doBlobImport(filename) {
+  var text = (currentDownload && currentDownload.configText)
+          || (currentDownload && cloudTextMap[currentDownload.id])
+          || null;
+  if (!text) { document.getElementById('inter-status').textContent = '✗ Config missing.'; return; }
+  var blob = new Blob([text], { type: 'application/octet-stream' });
+  var url  = URL.createObjectURL(blob);
+  var a    = document.createElement('a');
+  a.href     = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(function() { URL.revokeObjectURL(url); }, 1000);
+  var btn = document.getElementById('unlock-ready-btn');
+  btn.textContent = '✓ IMPORTING...';
+  btn.style.background = 'var(--green)';
+  showNudge();
+  incrementDownloads(currentDownload.id);
+  }
+  
 function doCloudCopy() {
   var text = (currentDownload && currentDownload.configText)
           || (currentDownload && cloudTextMap[currentDownload.id])
