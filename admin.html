@@ -395,7 +395,8 @@ async function uploadConfig() {
     file_url:     null,
     file_path:    null,
     file_name:    null,
-    config_text:  null,
+    config_text: (configType === 'cloud' || configType === 'npv' || configType === 'ehi') ? configText : null,
+    config_format: configType === 'npv' ? 'npv' : configType === 'ehi' ? 'ehi' : configType === 'cloud' ? 'copy' : 'file',
     downloads:    0,
   };
 
