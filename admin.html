@@ -378,7 +378,7 @@ async function uploadConfig() {
     statusEl.style.display = 'block'; statusEl.style.color = 'var(--red)';
     statusEl.textContent = '✗ Please select a file to upload.'; return;
   }
-  if (configType === 'cloud' && !configText) {
+  if ((configType === 'cloud' || configType === 'npv' || configType === 'ehi') && !configText) {
     statusEl.style.display = 'block'; statusEl.style.color = 'var(--red)';
     statusEl.textContent = '✗ Paste your config text.'; return;
   }
@@ -402,7 +402,7 @@ async function uploadConfig() {
     downloads:    0,
   };
 
-  if (configType === 'cloud') {
+  if (configType === 'cloud' || configType === 'npv' || configType === 'ehi') {
     // Cloud config — no file upload needed
     progressLbl.textContent = 'SAVING CLOUD CONFIG...';
     progressFill.style.width = '60%';
