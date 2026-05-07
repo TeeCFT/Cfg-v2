@@ -162,8 +162,8 @@ footer{border-top:1px solid var(--border);padding:24px 0 20px;text-align:center;
 
 <div class="wrap">
   <div class="hero">
-    <div class="hero-title">FREE <span class="highlight">PREMIUM VPN CONFIGS</span><br>UPDATED DAILY FROM ITACHIGOAT
-    <div class="hero-sub">SSH · VLESS · VMess · SlowDNS · UDP Custom — No signup. No limits. By ItachiGoat
+    <div class="hero-title">FREE <span class="highlight">PREMIUM VPN CONFIGS</span><br>UPDATED DAILY FROM ITACHIGOAT</div>
+    <div class="hero-sub">SSH · VLESS · VMess · SlowDNS · UDP Custom — No signup. No limits. By ItachiGoat</div>
     <div class="stats-row">
       <div class="stat"><div class="stat-num" id="total-configs">—</div><div class="stat-label">CONFIGS</div></div>
       <div class="stat"><div class="stat-num" id="total-downloads">—</div><div class="stat-label">DOWNLOADS</div></div>
@@ -246,11 +246,8 @@ footer{border-top:1px solid var(--border);padding:24px 0 20px;text-align:center;
   <div class="ad-300" id="ad-300"></div>
 
   <button class="unlock-ready-btn" id="unlock-ready-btn">🔓 UNLOCK &amp; GET CONFIG</button>
-  var fmt = cfgFormat || 'copy';
-  var btnLabel = fmt === 'npv' ? '📲 IMPORT TO NAPSTERNET' : fmt === 'ehi' ? '📲 IMPORT TO HTTP INJECTOR' : isCloud ? '⎘ COPY CONFIG' : '↓ DOWNLOAD CONFIG';
-  document.getElementById('unlock-ready-btn').textContent = btnLabel;
   <div class="inter-skip" id="inter-skip">Please wait <span id="skip-num">20</span>s...</div>
-<div class="nudge" id="nudge">
+  <div class="nudge" id="nudge">
   <div class="nudge-text">✓ Config unlocked — want more?</div>
   <button class="nudge-btn" onclick="closeInterstitial()">↩ SEE MORE CONFIGS</button>
   <button class="nudge-btn" style="margin-top:8px;border-color:var(--yellow);color:var(--yellow);" onclick="openRequest()">📡 REQUEST A CONFIG</button>
@@ -340,7 +337,17 @@ async function detectVPNAndLoadAds() {
 }
 
 detectVPNAndLoadAds().then(function() {
-  checkAdBlock();
+  var el = document.getElementById('ad-detect');
+  var isBlocked = !el || el.offsetHeight === 0 || el.offsetParent === null ||
+    window.getComputedStyle(el).display === 'none' ||
+    window.getComputedStyle(el).visibility === 'hidden';
+  if (isBlocked) {
+    document.getElementById('adblock-wall').style.display = 'flex';
+    document.getElementById('config-grid').innerHTML = '';
+  } else {
+    document.getElementById('adblock-wall').style.display = 'none';
+    loadConfigs();
+  }
 });
   
 // ── ACTIVITY COUNTER
@@ -471,14 +478,9 @@ document.querySelectorAll('.filter-btn').forEach(function(btn) {
 
 // ── UNLOCK FLOW
 function startUnlock(id, fileUrl, title, fileName, isCloud, cfgFormat) {
-  currentDownload = { id:id, 
-  fileUrl:fileUrl, 
-  title:title, 
-  fileName:fileName, 
-  isCloud:isCloud, 
-  configText:isCloud?(cloudTextMap[id]||null):null, 
-  format: cfgFormat || 'copy' };
-  };
+  currentDownload = { id:id, fileUrl:fileUrl, title:title, fileName:fileName, isCloud:isCloud, configText:isCloud?(cloudTextMap[id]||null):null, format: cfgFormat || 'copy' };
+  var fmt = cfgFormat || 'copy';
+  var btnLabel = fmt === 'npv' ? '📲 IMPORT TO NAPSTERNET' : fmt === 'ehi' ? '📲 IMPORT TO HTTP INJECTOR' : isCloud ? '⎘ COPY CONFIG' : '↓ DOWNLOAD CONFIG';
   var readyBtn = document.getElementById('unlock-ready-btn');
   readyBtn.className    = 'unlock-ready-btn ' + (isCloud ? 'cp' : 'dl');
   readyBtn.textContent  = '🔓 UNLOCK & GET CONFIG';
