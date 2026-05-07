@@ -306,8 +306,8 @@ function switchTab(tab) {
 // ── CONFIG TYPE TOGGLE
 function toggleConfigType() {
   var t = document.getElementById('up-type').value;
-  document.getElementById('file-section').style.display  = t === 'file'  ? 'block' : 'none';
-  document.getElementById('cloud-section').style.display = t === 'cloud' ? 'block' : 'none';
+  document.getElementById('file-section').style.display  = t === 'file' ? 'block' : 'none';
+  document.getElementById('cloud-section').style.display = (t === 'cloud' || t === 'npv' || t === 'ehi') ? 'block' : 'none';
 }
 
 // ── FILE INPUT
