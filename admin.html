@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CFGDROP — Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{
+  --bg:#030303;--s1:#0a0a0a;--s2:#0f0f0f;
+  --border:#1a1a1a;--border2:#242424;
+  --cyan:#00e5ff;--green:#00ff87;--yellow:#ffe600;
+  --red:#ff3b3b;--orange:#ff9500;
+  --text:#f0f0f0;--muted:#3a3a3a;--dim:#555;
+  --font-d:'Orbitron',sans-serif;--font-b:'JetBrains Mono',monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:var(--font-b);min-height:100vh;}
+body::after{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,229,255,0.02) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,255,0.02) 1px,transparent 1px);background-size:48px 48px;pointer-events:none;z-index:0;}
+
+#login-screen{position:fixed;inset:0;z-index:1000;background:var(--bg);display:flex;align-items:center;justify-content:center;flex-direction:column;}
+.login-box{width:100%;max-width:380px;padding:40px;background:var(--s1);border:1px solid var(--border);position:relative;}
+.login-box::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--cyan),transparent);}
+.login-title{font-family:var(--font-d);font-size:14px;font-weight:900;letter-spacing:4px;color:var(--cyan);margin-bottom:4px;text-shadow:0 0 20px rgba(0,229,255,0.3);}
+.login-sub{font-size:10px;color:var(--dim);letter-spacing:2px;margin-bottom:32px;}
+.field{margin-bottom:16px;}
+.field label{display:block;font-size:10px;color:var(--dim);letter-spacing:2px;margin-bottom:6px;}
+.field input{width:100%;padding:10px 12px;background:var(--s2);border:1px solid var(--border2);color:var(--text);font-family:var(--font-b);font-size:12px;outline:none;transition:border-color 0.15s;}
+.field input:focus{border-color:var(--cyan);}
+.login-btn{width:100%;padding:12px;margin-top:8px;font-family:var(--font-d);font-size:11px;letter-spacing:3px;font-weight:700;cursor:pointer;background:var(--cyan);color:#000;border:none;transition:all 0.15s;}
+.login-btn:hover{background:#fff;}
+.login-btn:disabled{background:var(--border2);color:var(--dim);cursor:not-allowed;}
+.login-error{font-size:10px;color:var(--red);margin-top:12px;letter-spacing:1px;display:none;}
+
+#app{display:none;position:relative;z-index:1;min-height:100vh;}
+.sidebar{position:fixed;top:0;left:0;bottom:0;width:200px;background:var(--s1);border-right:1px solid var(--border);display:flex;flex-direction:column;z-index:50;}
+.sidebar-logo{padding:20px;border-bottom:1px solid var(--border);font-family:var(--font-d);font-size:13px;font-weight:900;letter-spacing:3px;color:var(--cyan);}
+.sidebar-logo span{color:var(--text);}
+.sidebar-user{padding:12px 20px;font-size:9px;color:var(--dim);letter-spacing:1px;border-bottom:1px solid var(--border);word-break:break-all;}
+.nav-items{padding:16px 0;flex:1;}
+.nav-item{padding:11px 20px;font-size:11px;letter-spacing:2px;cursor:pointer;color:var(--dim);display:flex;align-items:center;gap:10px;transition:all 0.15s;border-left:2px solid transparent;}
+.nav-item:hover{color:var(--text);background:rgba(255,255,255,0.02);}
+.nav-item.active{color:var(--cyan);border-left-color:var(--cyan);background:rgba(0,229,255,0.04);}
+.nav-icon{font-size:14px;width:20px;text-align:center;}
+.logout-btn{padding:16px 20px;font-size:10px;color:var(--dim);cursor:pointer;border-top:1px solid var(--border);border-bottom:none;border-left:none;border-right:none;font-family:var(--font-b);text-align:left;width:100%;background:none;transition:color 0.15s;}
+.logout-btn:hover{color:var(--red);}
+.main{margin-left:200px;padding:32px;min-height:100vh;}
+.panel{display:none;}.panel.active{display:block;}
+.panel-title{font-family:var(--font-d);font-size:16px;font-weight:700;letter-spacing:3px;margin-bottom:4px;}
+.panel-sub{font-size:10px;color:var(--dim);letter-spacing:1px;margin-bottom:32px;}
+.card{background:var(--s1);border:1px solid var(--border);padding:24px;margin-bottom:16px;position:relative;}
+.card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,var(--cyan),transparent);opacity:0.3;}
+.card-title{font-size:11px;color:var(--dim);letter-spacing:2px;margin-bottom:20px;}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
+.form-row.full{grid-template-columns:1fr;}
+.form-group label{display:block;font-size:10px;color:var(--dim);letter-spacing:2px;margin-bottom:6px;}
+.form-group input,.form-group select,.form-group textarea{width:100%;padding:10px 12px;background:var(--s2);border:1px solid var(--border2);color:var(--text);font-family:var(--font-b);font-size:12px;outline:none;transition:border-color 0.15s;resize:vertical;}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:var(--cyan);}
+.form-group select option{background:var(--s1);}
+.drop-zone{border:1px dashed var(--border2);padding:32px;text-align:center;cursor:pointer;transition:all 0.2s;position:relative;}
+.drop-zone:hover,.drop-zone.drag,.drop-zone.has-file{border-color:var(--cyan);background:rgba(0,229,255,0.03);}
+.drop-zone input[type="file"]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+.drop-icon{font-size:28px;margin-bottom:8px;}
+.drop-text{font-size:11px;color:var(--dim);letter-spacing:1px;margin-bottom:4px;}
+.drop-sub{font-size:10px;color:var(--muted);letter-spacing:1px;}
+.drop-filename{font-size:11px;color:var(--cyan);margin-top:8px;display:none;}
+.uc-status{font-size:10px;margin-top:10px;letter-spacing:1px;display:none;}
+.btn{padding:11px 24px;font-family:var(--font-d);font-size:11px;letter-spacing:2px;font-weight:700;cursor:pointer;border:none;transition:all 0.15s;}
+.btn-primary{background:var(--cyan);color:#000;}
+.btn-primary:hover{background:#fff;}
+.btn-primary:disabled{background:var(--border2);color:var(--dim);cursor:not-allowed;}
+.btn-danger{background:transparent;color:var(--red);border:1px solid var(--red);}
+.btn-danger:hover{background:var(--red);color:#fff;}
+.btn-sm{padding:6px 14px;font-size:9px;}
+.progress-wrap{display:none;margin-top:16px;}
+.progress-label{font-size:10px;color:var(--dim);letter-spacing:1px;margin-bottom:6px;}
+.progress-bar{height:3px;background:var(--border2);position:relative;overflow:hidden;}
+.progress-fill{height:100%;background:var(--cyan);width:0%;transition:width 0.3s ease;box-shadow:0 0 8px var(--cyan);}
+.upload-status{font-size:11px;margin-top:8px;display:none;}
+.config-list{display:flex;flex-direction:column;gap:8px;}
+.config-item{background:var(--s2);border:1px solid var(--border);padding:16px 20px;display:flex;align-items:center;gap:16px;transition:border-color 0.15s;}
+.config-item:hover{border-color:var(--border2);}
+.config-item-badge{font-size:9px;letter-spacing:1px;padding:3px 8px;border:1px solid rgba(0,229,255,0.3);color:var(--cyan);background:rgba(0,229,255,0.06);flex-shrink:0;}
+.cloud-item-badge{font-size:9px;letter-spacing:1px;padding:3px 8px;border:1px solid rgba(255,230,0,0.3);color:var(--yellow);background:rgba(255,230,0,0.06);flex-shrink:0;}
+.config-item-info{flex:1;min-width:0;}
+.config-item-title{font-size:13px;font-weight:500;margin-bottom:2px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}
+.config-item-meta{font-size:10px;color:var(--dim);}
+.config-item-dl{font-size:11px;color:var(--dim);flex-shrink:0;}
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:24px;}
+.stat-box{background:var(--s1);border:1px solid var(--border);padding:16px;}
+.stat-box-num{font-size:24px;font-weight:500;color:var(--cyan);}
+.stat-box-label{font-size:9px;color:var(--dim);letter-spacing:1px;margin-top:4px;}
+.scan-btn{width:100%;padding:13px;margin-bottom:20px;font-family:var(--font-d);font-size:12px;letter-spacing:3px;font-weight:700;cursor:pointer;background:var(--yellow);color:#000;border:none;transition:all 0.15s;}
+.scan-btn:disabled{background:rgba(255,230,0,0.1);color:var(--yellow);cursor:not-allowed;border:1px solid rgba(255,230,0,0.2);}
+.scan-log{background:var(--s2);border:1px solid var(--border);padding:14px;margin-bottom:20px;font-size:10px;color:var(--dim);line-height:2;max-height:150px;overflow-y:auto;display:none;}
+.trend-card{background:var(--s2);border:1px solid var(--border);border-left:3px solid var(--yellow);padding:16px 20px;cursor:pointer;transition:all 0.15s;margin-bottom:8px;}
+.trend-card:hover{border-color:var(--border2);}
+.trend-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;}
+.trend-badges{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:6px;}
+.urgency-badge{font-size:9px;letter-spacing:1px;padding:2px 6px;}
+.trend-name{font-size:14px;font-weight:600;margin-bottom:4px;}
+.trend-why{font-size:11px;color:var(--dim);line-height:1.5;}
+.trend-score{font-size:22px;font-weight:700;text-align:right;flex-shrink:0;}
+.trend-expand{display:none;padding-top:14px;margin-top:14px;border-top:1px solid var(--border);}
+.expand-label{font-size:9px;letter-spacing:2px;margin-bottom:8px;}
+.expand-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.expand-field-label{font-size:9px;color:var(--dim);letter-spacing:1px;margin-bottom:3px;}
+.expand-field-val{font-size:11px;color:rgba(240,240,240,0.7);line-height:1.5;}
+@media(max-width:700px){
+  .sidebar{width:100%;height:56px;flex-direction:row;position:fixed;top:0;bottom:auto;border-right:none;border-bottom:1px solid var(--border);}
+  .sidebar-logo{padding:0 16px;display:flex;align-items:center;height:56px;border-bottom:none;}
+  .sidebar-user,.nav-items,.logout-btn{display:none;}
+  .main{margin-left:0;margin-top:56px;padding:20px 16px;}
+  .stats-grid{grid-template-columns:repeat(2,1fr);}
+  .form-row{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-title">CFGDROP</div>
+    <div class="login-sub">ADMIN ACCESS ONLY</div>
+    <div class="field">
+      <label>EMAIL</label>
+      <input type="email" id="login-email" placeholder="admin@email.com">
+    </div>
+    <div class="field">
+      <label>PASSWORD</label>
+      <input type="password" id="login-pass" placeholder="••••••••">
+    </div>
+    <button class="login-btn" id="login-btn" onclick="doLogin()">ENTER</button>
+    <div class="login-error" id="login-error">Invalid credentials. Try again.</div>
+  </div>
+</div>
+
+<div id="app">
+  <div class="sidebar">
+    <div class="sidebar-logo">CFG<span>DROP</span></div>
+    <div class="sidebar-user" id="sidebar-user">—</div>
+    <div class="nav-items">
+      <div class="nav-item active" data-tab="upload" onclick="switchTab('upload')"><span class="nav-icon">↑</span>UPLOAD</div>
+      <div class="nav-item" data-tab="manage" onclick="switchTab('manage')"><span class="nav-icon">≡</span>MANAGE</div>
+      <div class="nav-item" data-tab="trends" onclick="switchTab('trends')"><span class="nav-icon">◈</span>TREND INTEL</div>
+    </div>
+    <button class="logout-btn" onclick="doLogout()">⎋ LOGOUT</button>
+  </div>
+
+  <div class="main">
+
+    <!-- UPLOAD -->
+    <div class="panel active" id="tab-upload">
+      <div class="panel-title">UPLOAD CONFIG</div>
+      <div class="panel-sub">ADD A NEW VPN CONFIG FILE TO THE SITE</div>
+      <div class="card">
+        <div class="card-title">CONFIG DETAILS</div>
+        <div class="form-row">
+          <div class="form-group"><label>TITLE</label><input type="text" id="up-title" placeholder="e.g. ZA SSH Premium #1"></div>
+          <div class="form-group">
+            <label>PROTOCOL</label>
+            <select id="up-protocol">
+              <option value="SSH">SSH</option>
+              <option value="VLESS">VLESS</option>
+              <option value="VMess">VMess</option>
+              <option value="SlowDNS">SlowDNS</option>
+              <option value="UDP">UDP</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>SERVER / REGION (optional)</label><input type="text" id="up-server" placeholder="e.g. South Africa · Telkom"></div>
+          <div class="form-group"><label>EXPIRES (optional)</label><input type="text" id="up-expires" placeholder="e.g. 30 Apr 2026"></div>
+        </div>
+        <div class="form-row full">
+          <div class="form-group"><label>DESCRIPTION</label><textarea id="up-desc" rows="3" placeholder="Brief description — compatible apps, network, etc."></textarea></div>
+        </div>
+
+        <!-- CONFIG TYPE TOGGLE -->
+        <div class="form-row full">
+          <div class="form-group">
+            <label>CONFIG TYPE</label>
+            <select id="up-type" onchange="toggleConfigType()">
+              <option value="file">File Upload (.hc, .ovpn, .conf...)</option>
+              <option value="cloud">Cloud Config (paste text to copy)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- FILE UPLOAD SECTION -->
+        <div id="file-section" class="form-row full">
+          <div class="form-group">
+            <label>CONFIG FILE</label>
+            <div class="drop-zone" id="drop-zone">
+              <input type="file" id="file-input" accept=".txt,.ovpn,.conf,.json,.xml,.vmess,.vless,.hc">
+              <div class="drop-icon">↑</div>
+              <div class="drop-text">DROP FILE HERE OR CLICK TO BROWSE</div>
+              <div class="drop-sub">TXT · OVPN · CONF · JSON · XML · HC</div>
+              <div class="drop-filename" id="drop-filename"></div>
+            </div>
+            <div class="uc-status" id="uc-status"></div>
+          </div>
+        </div>
+
+        <!-- CLOUD CONFIG SECTION -->
+        <div id="cloud-section" class="form-row full" style="display:none">
+          <div class="form-group">
+            <label>CONFIG TEXT (paste full config string)</label>
+            <textarea id="up-config-text" rows="6" placeholder="Paste the full config string here — users will copy it directly from the site..."></textarea>
+          </div>
+        </div>
+
+        <button class="btn btn-primary" onclick="uploadConfig()" id="upload-btn">↑ UPLOAD CONFIG</button>
+        <div class="progress-wrap" id="progress-wrap">
+          <div class="progress-label" id="progress-label">UPLOADING TO UPLOADCARE...</div>
+          <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+        </div>
+        <div class="upload-status" id="upload-status"></div>
+      </div>
+    </div>
+
+    <!-- MANAGE -->
+    <div class="panel" id="tab-manage">
+      <div class="panel-title">MANAGE CONFIGS</div>
+      <div class="panel-sub">VIEW, MONITOR AND DELETE CONFIG FILES</div>
+      <div class="stats-grid">
+        <div class="stat-box"><div class="stat-box-num" id="stat-total">—</div><div class="stat-box-label">TOTAL CONFIGS</div></div>
+        <div class="stat-box"><div class="stat-box-num" id="stat-downloads">—</div><div class="stat-box-label">TOTAL DOWNLOADS</div></div>
+        <div class="stat-box"><div class="stat-box-num" id="stat-today">—</div><div class="stat-box-label">ADDED TODAY</div></div>
+        <div class="stat-box"><div class="stat-box-num" id="stat-top">—</div><div class="stat-box-label">TOP DOWNLOADS</div></div>
+      </div>
+      <div class="card">
+        <div class="card-title">ALL CONFIGS</div>
+        <div class="config-list" id="config-list"><div style="font-size:11px;color:#333;text-align:center;padding:40px;">Loading...</div></div>
+      </div>
+    </div>
+
+    <!-- TREND INTEL -->
+    <div class="panel" id="tab-trends">
+      <div class="panel-title">TREND INTEL</div>
+      <div class="panel-sub">NDS MORNING BRIEF — EARLY SIGNAL DETECTION</div>
+      <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
+        <button onclick="filterTrends('All')" class="btn btn-sm btn-primary" data-tf="All">ALL</button>
+        <button onclick="filterTrends('Tech')" class="btn btn-sm" data-tf="Tech" style="background:transparent;border:1px solid var(--border2);color:var(--dim);">TECH</button>
+        <button onclick="filterTrends('Culture')" class="btn btn-sm" data-tf="Culture" style="background:transparent;border:1px solid var(--border2);color:var(--dim);">CULTURE</button>
+        <button onclick="filterTrends('Music')" class="btn btn-sm" data-tf="Music" style="background:transparent;border:1px solid var(--border2);color:var(--dim);">MUSIC</button>
+        <button onclick="filterTrends('Finance')" class="btn btn-sm" data-tf="Finance" style="background:transparent;border:1px solid var(--border2);color:var(--dim);">FINANCE</button>
+        <button onclick="filterTrends('Forex')" class="btn btn-sm" data-tf="Forex" style="background:transparent;border:1px solid var(--border2);color:var(--dim);">FOREX</button>
+      </div>
+      <button class="scan-btn" id="scan-btn" onclick="runBrief()">▶ RUN MORNING BRIEF</button>
+      <div class="scan-log" id="scan-log"></div>
+      <div id="trend-results"></div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL      = 'https://lkruzhkjultgappbhwvq.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxrcnV6aGtqdWx0Z2FwcGJod3ZxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2Nzg3MTQsImV4cCI6MjA5MTI1NDcxNH0.qSxwE01YLfjG28jV7YKJQsiM1HIar9JCOaJKvmMhfq0';
+const UC_PUBLIC_KEY = '2588098b498dce524a55';
+const UC_UPLOAD_URL = 'https://upload.uploadcare.com/base/';
+const UC_CDN_BASE   = 'https://ucarecdn.com/';
+
+const { createClient } = supabase;
+const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// ── AUTH
+async function doLogin() {
+  var email = document.getElementById('login-email').value.trim();
+  var pass  = document.getElementById('login-pass').value;
+  var btn   = document.getElementById('login-btn');
+  var errEl = document.getElementById('login-error');
+  if (!email || !pass) { errEl.style.display='block'; errEl.textContent='Fill in all fields.'; return; }
+  btn.disabled = true; btn.textContent = 'VERIFYING...'; errEl.style.display = 'none';
+  var res = await db.auth.signInWithPassword({ email, password: pass });
+  if (res.error) {
+    errEl.style.display = 'block'; errEl.textContent = 'Access denied.';
+    btn.disabled = false; btn.textContent = 'ENTER'; return;
+  }
+  bootApp(email);
+}
+async function doLogout() { await db.auth.signOut(); location.reload(); }
+(async function() {
+  var s = await db.auth.getSession();
+  if (s.data.session) bootApp(s.data.session.user.email);
+})();
+function bootApp(email) {
+  document.getElementById('sidebar-user').textContent = email;
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  loadManage();
+}
+document.getElementById('login-pass').addEventListener('keydown', function(e){ if(e.key==='Enter') doLogin(); });
+
+// ── TABS
+function switchTab(tab) {
+  document.querySelectorAll('.panel').forEach(function(p){ p.classList.remove('active'); });
+  document.querySelectorAll('.nav-item').forEach(function(n){ n.classList.remove('active'); });
+  document.getElementById('tab-'+tab).classList.add('active');
+  document.querySelector('[data-tab="'+tab+'"]').classList.add('active');
+  if (tab === 'manage') loadManage();
+}
+
+// ── CONFIG TYPE TOGGLE
+function toggleConfigType() {
+  var t = document.getElementById('up-type').value;
+  document.getElementById('file-section').style.display  = t === 'file'  ? 'block' : 'none';
+  document.getElementById('cloud-section').style.display = t === 'cloud' ? 'block' : 'none';
+}
+
+// ── FILE INPUT
+var fileInput    = document.getElementById('file-input');
+var dropZone     = document.getElementById('drop-zone');
+var dropFilename = document.getElementById('drop-filename');
+fileInput.addEventListener('change', function() {
+  if (fileInput.files[0]) {
+    dropFilename.textContent = '✓ ' + fileInput.files[0].name;
+    dropFilename.style.display = 'block';
+    dropZone.classList.add('has-file');
+  }
+});
+['dragover','dragenter'].forEach(function(e){ dropZone.addEventListener(e, function(ev){ ev.preventDefault(); dropZone.classList.add('drag'); }); });
+['dragleave','drop'].forEach(function(e){ dropZone.addEventListener(e, function(){ dropZone.classList.remove('drag'); }); });
+
+// ── UPLOADCARE UPLOAD
+function uploadToUploadcare(file, onProgress) {
+  return new Promise(function(resolve, reject) {
+    var formData = new FormData();
+    formData.append('UPLOADCARE_PUB_KEY', UC_PUBLIC_KEY);
+    formData.append('UPLOADCARE_STORE', '1');
+    formData.append('file', file);
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', UC_UPLOAD_URL, true);
+    xhr.upload.onprogress = function(e) {
+      if (e.lengthComputable && onProgress) onProgress(Math.round((e.loaded/e.total)*90));
+    };
+    xhr.onload = function() {
+      if (xhr.status === 200) {
+        try {
+          var resp = JSON.parse(xhr.responseText);
+          if (resp.file) {
+            resolve({ uuid: resp.file, cdnUrl: UC_CDN_BASE + resp.file + '/' });
+          } else { reject(new Error('Uploadcare: no file UUID')); }
+        } catch(e) { reject(new Error('Uploadcare: invalid response')); }
+      } else { reject(new Error('Uploadcare: HTTP ' + xhr.status)); }
+    };
+    xhr.onerror = function(){ reject(new Error('Uploadcare: network error')); };
+    xhr.send(formData);
+  });
+}
+
+// ── UPLOAD CONFIG (handles both file and cloud)
+async function uploadConfig() {
+  var title      = document.getElementById('up-title').value.trim();
+  var protocol   = document.getElementById('up-protocol').value;
+  var desc       = document.getElementById('up-desc').value.trim();
+  var server     = document.getElementById('up-server').value.trim();
+  var expires    = document.getElementById('up-expires').value.trim();
+  var configType = document.getElementById('up-type').value;
+  var configText = document.getElementById('up-config-text').value.trim();
+  var file       = fileInput.files[0];
+
+  var statusEl     = document.getElementById('upload-status');
+  var progressWrap = document.getElementById('progress-wrap');
+  var progressFill = document.getElementById('progress-fill');
+  var progressLbl  = document.getElementById('progress-label');
+  var uploadBtn    = document.getElementById('upload-btn');
+
+  if (!title) {
+    statusEl.style.display = 'block'; statusEl.style.color = 'var(--red)';
+    statusEl.textContent = '✗ Title is required.'; return;
+  }
+  if (configType === 'file' && !file) {
+    statusEl.style.display = 'block'; statusEl.style.color = 'var(--red)';
+    statusEl.textContent = '✗ Please select a file to upload.'; return;
+  }
+  if (configType === 'cloud' && !configText) {
+    statusEl.style.display = 'block'; statusEl.style.color = 'var(--red)';
+    statusEl.textContent = '✗ Paste your config text.'; return;
+  }
+
+  uploadBtn.disabled = true;
+  progressWrap.style.display = 'block';
+  statusEl.style.display = 'none';
+  progressFill.style.width = '0%';
+
+  var dbPayload = {
+    title,
+    protocol,
+    description:  desc      || null,
+    server:       server    || null,
+    expires:      expires   || null,
+    file_url:     null,
+    file_path:    null,
+    file_name:    null,
+    config_text:  null,
+    downloads:    0,
+  };
+
+  if (configType === 'cloud') {
+    // Cloud config — no file upload needed
+    progressLbl.textContent = 'SAVING CLOUD CONFIG...';
+    progressFill.style.width = '60%';
+    dbPayload.config_text = configText;
+  } else {
+    // File upload to Uploadcare
+    progressLbl.textContent = 'UPLOADING TO UPLOADCARE...';
+    var ucResult;
+    try {
+      ucResult = await uploadToUploadcare(file, function(pct){ progressFill.style.width = pct + '%'; });
+    } catch(err) {
+      progressFill.style.width = '0%';
+      progressWrap.style.display = 'none';
+      statusEl.style.display = 'block'; statusEl.style.color = 'var(--red)';
+      statusEl.textContent = '✗ Upload failed: ' + err.message;
+      uploadBtn.disabled = false; return;
+    }
+    dbPayload.file_url  = ucResult.cdnUrl;
+    dbPayload.file_path = ucResult.uuid;
+    dbPayload.file_name = file.name;
+  }
+
+  progressFill.style.width = '95%';
+  progressLbl.textContent = 'SAVING TO DATABASE...';
+
+  var res = await db.from('Configs').insert(dbPayload);
+  progressFill.style.width = '100%';
+  statusEl.style.display = 'block';
+
+  if (res.error) {
+    statusEl.style.color = 'var(--red)';
+    statusEl.textContent = '✗ DB error: ' + res.error.message;
+  } else {
+    statusEl.style.color = 'var(--green)';
+    statusEl.textContent = configType === 'cloud' ? '✓ Cloud config saved!' : '✓ Config uploaded successfully!';
+    document.getElementById('up-title').value       = '';
+    document.getElementById('up-desc').value        = '';
+    document.getElementById('up-server').value      = '';
+    document.getElementById('up-expires').value     = '';
+    document.getElementById('up-config-text').value = '';
+    fileInput.value = '';
+    dropFilename.style.display = 'none';
+    dropZone.classList.remove('has-file');
+    setTimeout(function(){ progressWrap.style.display='none'; progressFill.style.width='0%'; }, 1500);
+  }
+  uploadBtn.disabled = false;
+}
+
+// ── MANAGE
+var allConfigs = [];
+async function loadManage() {
+  var list = document.getElementById('config-list');
+  list.innerHTML = '<div style="font-size:11px;color:#333;text-align:center;padding:40px;">Loading...</div>';
+  var res = await db.from('Configs').select('*').order('created_at', { ascending: false });
+  if (res.error || !res.data) {
+    list.innerHTML = '<div style="font-size:11px;color:#333;text-align:center;padding:40px;">Failed to load.</div>';
+    return;
+  }
+  allConfigs = res.data;
+  var data    = res.data;
+  var totalDl = data.reduce(function(s,c){ return s+(c.downloads||0); }, 0);
+  var topDl   = data.length ? Math.max.apply(null, data.map(function(c){ return c.downloads||0; })) : 0;
+  var today   = new Date().toDateString();
+  var addedToday = data.filter(function(c){ return new Date(c.created_at).toDateString()===today; }).length;
+  document.getElementById('stat-total').textContent     = data.length;
+  document.getElementById('stat-downloads').textContent = totalDl > 999 ? (totalDl/1000).toFixed(1)+'K' : totalDl;
+  document.getElementById('stat-today').textContent     = addedToday;
+  document.getElementById('stat-top').textContent       = topDl;
+  if (!data.length) {
+    list.innerHTML = '<div style="font-size:11px;color:#333;text-align:center;padding:40px;">No configs yet.</div>';
+    return;
+  }
+  list.innerHTML = data.map(function(cfg) {
+    var date    = new Date(cfg.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
+    var isCloud = !cfg.file_url && cfg.config_text;
+    var badge   = isCloud
+      ? '<span class="cloud-item-badge">CLOUD</span>'
+      : '<span class="config-item-badge">'+(cfg.protocol||'CFG')+'</span>';
+    return '<div class="config-item">'
+      + badge
+      + '<div class="config-item-info">'
+      + '<div class="config-item-title">'+cfg.title+'</div>'
+      + '<div class="config-item-meta">'+date+(cfg.server?' · '+cfg.server:'')+(isCloud?' · Cloud Config':'')+'</div>'
+      + '</div>'
+      + '<div class="config-item-dl">↓ '+(cfg.downloads||0).toLocaleString()+'</div>'
+      + '<button class="btn btn-danger btn-sm" onclick="deleteConfig(\''+cfg.id+'\',\''+cfg.file_path+'\')">DELETE</button>'
+      + '</div>';
+  }).join('');
+}
+
+async function deleteConfig(id, fileUUID) {
+  if (!confirm('Delete this config? Cannot be undone.')) return;
+  if (fileUUID) console.log('Uploadcare delete skipped (no secret key) — UUID:', fileUUID);
+  await db.from('Configs').delete().eq('id', id);
+  loadManage();
+}
+
+// ── TREND INTEL
+const NORTH_CONTEXT = 'You are the content intelligence system for North — a young South African creator, entrepreneur, forex trader, and music producer building the NDS (North Dream Studio) brand. Niches: forex, music production, startups/apps, street culture, fashion, South African culture, cinematic storytelling, entrepreneurship. YouTube growth is #1 priority in 2026.';
+const SUBREDDITS = ['streetwear','sneakers','hiphopheads','artificial','startups','SideProject','MachineLearning','Daytrading','Forex','entrepreneur','WeAreTheMusicMakers','makinghiphop','OutOfTheLoop','InternetIsBeautiful','futurology','TikTokCringe'];
+const NEWS_FEEDS = [
+  {name:'TechCrunch',url:'https://techcrunch.com/feed/'},
+  {name:'Rolling Stone',url:'https://www.rollingstone.com/feed/'},
+  {name:'Hypebeast',url:'https://hypebeast.com/feed'},
+  {name:'The Verge',url:'https://www.theverge.com/rss/index.xml'},
+  {name:'BBC Tech',url:'https://feeds.bbci.co.uk/news/technology/rss.xml'},
+];
+const PROXY = 'https://api.allorigins.win/get?url=';
+var scanRunning = false;
+var allTrends   = [];
+
+async function fetchReddit(sub) {
+  try {
+    var res  = await fetch(PROXY+encodeURIComponent('https://www.reddit.com/r/'+sub+'/rising.json?limit=10&raw_json=1'));
+    var json = await res.json();
+    var data = JSON.parse(json.contents);
+    return (data?.data?.children||[]).map(function(p){ return {title:p.data.title,score:p.data.score,source:'Reddit r/'+sub,type:'reddit'}; });
+  } catch { return []; }
+}
+async function fetchHN() {
+  try {
+    var res   = await fetch(PROXY+encodeURIComponent('https://hacker-news.firebaseio.com/v0/newstories.json'));
+    var json  = await res.json();
+    var ids   = JSON.parse(json.contents).slice(0,20);
+    var stories = await Promise.all(ids.slice(0,10).map(function(id){ return fetch(PROXY+encodeURIComponent('https://hacker-news.firebaseio.com/v0/item/'+id+'.json')).then(function(r){ return r.json(); }).then(function(j){ return JSON.parse(j.contents); }).catch(function(){ return null; }); }));
+    return stories.filter(Boolean).filter(function(s){ return s?.title; }).map(function(s){ return {title:s.title,score:s.score||0,source:'HackerNews',type:'hn'}; });
+  } catch { return []; }
+}
+async function fetchYouTube() {
+  try {
+    var res = await fetch(PROXY+encodeURIComponent('https://www.youtube.com/feeds/videos.xml?chart=mostpopular&regionCode=US'));
+    var json = await res.json();
+    var xml  = new DOMParser().parseFromString(json.contents,'text/xml');
+    return Array.from(xml.querySelectorAll('entry')).slice(0,15).map(function(e){ return {title:e.querySelector('title')?.textContent||'',source:'YouTube Trending',type:'youtube'}; });
+  } catch { return []; }
+}
+async function fetchNews(feed) {
+  try {
+    var res  = await fetch(PROXY+encodeURIComponent(feed.url));
+    var json = await res.json();
+    var xml  = new DOMParser().parseFromString(json.contents,'text/xml');
+    return Array.from(xml.querySelectorAll('item')).slice(0,8).map(function(item){ return {title:item.querySelector('title')?.textContent||'',source:feed.name,type:'news'}; });
+  } catch { return []; }
+}
+
+function addLog(msg) {
+  var log = document.getElementById('scan-log');
+  log.style.display = 'block';
+  log.innerHTML += '<div style="color:'+(msg.startsWith('✓')?'var(--green)':msg.startsWith('✗')?'var(--red)':'var(--dim)')+'">'+msg+'</div>';
+  log.scrollTop = log.scrollHeight;
+}
+
+async function runBrief() {
+  if (scanRunning) return;
+  scanRunning = true;
+  var btn = document.getElementById('scan-btn');
+  btn.disabled = true; btn.textContent = 'SCANNING...';
+  document.getElementById('scan-log').innerHTML = '';
+  document.getElementById('trend-results').innerHTML = '';
+  allTrends = [];
+  var signals = [];
+  addLog('→ Scanning Reddit rising...');
+  for (var i=0; i<Math.min(SUBREDDITS.length,10); i++) {
+    var posts = await fetchReddit(SUBREDDITS[i]);
+    signals = signals.concat(posts);
+    if (posts.length) addLog('  ✓ r/'+SUBREDDITS[i]+' ('+posts.length+')');
+  }
+  addLog('→ Scanning HackerNews...');
+  var hn = await fetchHN(); signals=signals.concat(hn);
+  addLog('  ✓ HackerNews ('+hn.length+')');
+  addLog('→ Scanning YouTube...');
+  var yt = await fetchYouTube(); signals=signals.concat(yt);
+  addLog('  ✓ YouTube ('+yt.length+')');
+  addLog('→ Scanning news feeds...');
+  for (var j=0; j<NEWS_FEEDS.length; j++) { var a=await fetchNews(NEWS_FEEDS[j]); signals=signals.concat(a); if(a.length) addLog('  ✓ '+NEWS_FEEDS[j].name+' ('+a.length+')'); }
+  addLog('→ '+signals.length+' signals — running AI...');
+  try {
+    var res = await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:NORTH_CONTEXT+'\n\nRaw signals:\n'+JSON.stringify(signals.slice(0,60),null,2)+'\n\nIdentify TOP 8 pre-mainstream trends. Return ONLY a valid JSON array, no markdown:\n[{"trend_name":"...","category":"Tech|Culture|Music|Fashion|Finance|Forex","velocity_score":75,"urgency":"Post today|This week|Within 2 weeks","why_rising":"...","mainstream_eta":"...","sources_detected":["..."],"youtube_angle":{"format":"Short|Long-form|Both","title":"...","hook":"...","why_now":"..."},"tiktok_hook":"...","instagram_angle":"..."}]\n\nYouTube growth is #1. Sort by urgency then velocity. Return exactly 8.'}]})});
+    var data = await res.json();
+    var text = (data.content||[]).map(function(b){ return b.text||''; }).join('');
+    allTrends = JSON.parse(text.replace(/```json|```/g,'').trim());
+    renderTrends(allTrends);
+    addLog('✓ Brief complete — '+allTrends.length+' trends');
+  } catch(e) { addLog('✗ AI analysis failed — retry'); }
+  btn.disabled = false; btn.textContent = '▶ RUN MORNING BRIEF';
+  scanRunning = false;
+}
+
+function filterTrends(cat) {
+  document.querySelectorAll('[data-tf]').forEach(function(b){
+    b.style.background = b.dataset.tf===cat?'var(--cyan)':'transparent';
+    b.style.color      = b.dataset.tf===cat?'#000':'var(--dim)';
+    b.style.border     = b.dataset.tf===cat?'none':'1px solid var(--border2)';
+  });
+  renderTrends(cat==='All'?allTrends:allTrends.filter(function(t){ return t.category===cat; }));
+}
+
+function urgencyColor(u){ return u==='Post today'?'var(--red)':u==='This week'?'var(--orange)':'var(--yellow)'; }
+
+function renderTrends(trends) {
+  var el = document.getElementById('trend-results');
+  if (!trends.length){ el.innerHTML='<div style="font-size:11px;color:#333;text-align:center;padding:40px;">No trends for this filter.</div>'; return; }
+  el.innerHTML = trends.map(function(t,i){
+    var uc=urgencyColor(t.urgency);
+    return '<div class="trend-card" style="border-left-color:'+uc+'" onclick="toggleExpand('+i+')">'
+      +'<div class="trend-top"><div style="flex:1">'
+      +'<div class="trend-badges"><span class="urgency-badge" style="background:'+uc+'20;color:'+uc+';border:1px solid '+uc+'40">'+(t.urgency||'').toUpperCase()+'</span>'
+      +'<span style="font-size:9px;color:var(--dim);letter-spacing:1px">'+(t.category||'').toUpperCase()+'</span>'
+      +'<span style="font-size:9px;color:var(--muted)">ETA: '+t.mainstream_eta+'</span></div>'
+      +'<div class="trend-name">'+t.trend_name+'</div>'
+      +'<div class="trend-why">'+t.why_rising+'</div></div>'
+      +'<div><div class="trend-score" style="color:'+uc+'">'+t.velocity_score+'</div><div style="font-size:9px;color:var(--muted);letter-spacing:1px;text-align:right">VEL</div></div></div>'
+      +'<div class="trend-expand" id="trend-expand-'+i+'">'
+      +'<div style="margin-bottom:14px"><div class="expand-label" style="color:var(--yellow)">▶ YOUTUBE ANGLE</div>'
+      +'<div class="expand-grid">'
+      +'<div><div class="expand-field-label">TITLE</div><div class="expand-field-val" style="color:#fff;font-weight:500">'+(t.youtube_angle?.title||'—')+'</div></div>'
+      +'<div><div class="expand-field-label">FORMAT</div><div class="expand-field-val">'+(t.youtube_angle?.format||'—')+'</div></div>'
+      +'<div style="grid-column:1/-1"><div class="expand-field-label">HOOK</div><div class="expand-field-val">'+(t.youtube_angle?.hook||'—')+'</div></div>'
+      +'<div style="grid-column:1/-1"><div class="expand-field-label">WHY NOW</div><div class="expand-field-val">'+(t.youtube_angle?.why_now||'—')+'</div></div>'
+      +'</div></div>'
+      +'<div class="expand-grid">'
+      +'<div><div class="expand-label" style="color:var(--dim)">◈ TIKTOK</div><div class="expand-field-val">'+(t.tiktok_hook||'—')+'</div></div>'
+      +'<div><div class="expand-label" style="color:var(--dim)">◉ INSTAGRAM</div><div class="expand-field-val">'+(t.instagram_angle||'—')+'</div></div>'
+      +'</div>'
+      +'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:12px">'+(t.sources_detected||[]).map(function(s){ return '<span style="font-size:9px;color:var(--muted);border:1px solid var(--border);padding:2px 6px">'+s+'</span>'; }).join('')+'</div>'
+      +'</div></div>';
+  }).join('');
+}
+
+function toggleExpand(i){
+  var el=document.getElementById('trend-expand-'+i);
+  if(!el) return;
+  var isOpen=el.style.display==='block';
+  document.querySelectorAll('.trend-expand').forEach(function(e){ e.style.display='none'; });
+  if(!isOpen) el.style.display='block';
+}
+</script>
+</body>
+</html>
