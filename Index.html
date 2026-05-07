@@ -246,6 +246,9 @@ footer{border-top:1px solid var(--border);padding:24px 0 20px;text-align:center;
   <div class="ad-300" id="ad-300"></div>
 
   <button class="unlock-ready-btn" id="unlock-ready-btn">🔓 UNLOCK &amp; GET CONFIG</button>
+  var fmt = cfgFormat || 'copy';
+  var btnLabel = fmt === 'npv' ? '📲 IMPORT TO NAPSTERNET' : fmt === 'ehi' ? '📲 IMPORT TO HTTP INJECTOR' : isCloud ? '⎘ COPY CONFIG' : '↓ DOWNLOAD CONFIG';
+  document.getElementById('unlock-ready-btn').textContent = btnLabel;
   <div class="inter-skip" id="inter-skip">Please wait <span id="skip-num">20</span>s...</div>
 <div class="nudge" id="nudge">
   <div class="nudge-text">✓ Config unlocked — want more?</div>
