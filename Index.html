@@ -324,7 +324,7 @@ async function detectVPNAndLoadAds() {
       b1.innerHTML = ''; b1.appendChild(sb1);
     }
   } else {
-    // Load Adsterra 320x50 into banner slot — clean traffic
+    // Load 320x50 into banner slot — clean traffic
     var b2 = document.getElementById('banner-320-inner');
     if (b2) {
       var s1 = document.createElement('script');
@@ -384,7 +384,7 @@ function loadInterstitialAds() {
       s3.async = true; s3.referrerPolicy = 'no-referrer-when-downgrade';
       w300.appendChild(s3);
     } else {
-      // Adsterra 300x250 for clean users
+      // 300x250 for clean users
       var s3 = document.createElement('script');
       s3.textContent = "atOptions={'key':'362d709550350648387d060b02a03c44','format':'iframe','height':250,'width':300,'params':{}};";
       var s4 = document.createElement('script'); s4.src = 'https://www.highperformanceformat.com/362d709550350648387d060b02a03c44/invoke.js';
