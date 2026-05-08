@@ -16,7 +16,7 @@ muted
 loop
 playsInline
 className="absolute inset-0 h-full w-full object-cover"
-> {/ Replace with your uploaded GitHub/raw video URL */} <source src="/cfg-bg.mp4" type="video/mp4" /> </video>
+> {/ Replace with your uploaded GitHub/raw video URL */} <source src="/PinDown.io_@The_Honored1_1778267198.mp4" type="video/mp4"/> </video>
 
 {/* Overlay */}
   <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px]" />
